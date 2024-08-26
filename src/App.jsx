@@ -1,27 +1,59 @@
 import axios from 'axios'
-import { useEffect, useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import './App.css'
 import Update from './Update'
 
-function App() {
-
-  const [data, setData] = useState([])
-  const [values, setValues] = useState({
+const initialState = {
+  data: [],
+  values: {
     name: '',
     year: ''
-  })
+  },
+  currentId: null,
+  modal: false,
+};
 
-  const [currentId, setCurrentId] = useState(null);
+const reducer = (state, action) => {
+  switch (action.type) {
+    case 'SET_DATA':
+      return { ...state, data: action.payload };
+    case 'SET_VALUES':
+      return { ...state, values: action.payload };
+    case 'SET_CURRENT_ID':
+      return { ...state, currentId: action.payload };
+    case 'TOGGLE_MODAL':
+      return { ...state, modal: !state.modal };
+    default:
+      return state;
+  }
+};
+
+function App() {
+
+  const [state, dispatch] = useReducer(reducer, initialState);
 
   const handleEdit = (id) => {
-    setCurrentId(id);
+    dispatch({ type: 'SET_CURRENT_ID', payload: id });
     toggleModal();
   };
+
+  // const [data, setData] = useState([])
+  // const [values, setValues] = useState({
+  //   name: '',
+  //   year: ''
+  // })
+
+  // const [currentId, setCurrentId] = useState(null);
+
+  // const handleEdit = (id) => {
+  //   setCurrentId(id);
+  //   toggleModal();
+  // };
 
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    axios.post('http://localhost:8080/todos', values)
+    axios.post('http://localhost:8080/todos', state.values)
       .then(location.reload())
       .catch(err => console.log(err))
   }
@@ -29,7 +61,7 @@ function App() {
   useEffect(() => {
 
     axios.get('http://localhost:8080/todos')
-      .then(res => setData(res.data))
+      .then(res => dispatch({ type: 'SET_DATA', payload: res.data }))
       .catch(err => console.log(err))
 
   }, [])
@@ -38,10 +70,10 @@ function App() {
 
   let year_of_birth = new Date().getFullYear()
 
-  const [modal, setModal] = useState(false)
+  // const [modal, setModal] = useState(false)
 
   const toggleModal = () => {
-    setModal(!modal)
+    dispatch({ type: 'TOGGLE_MODAL' });
   }
 
   const handleDelete = (id) => {
@@ -57,14 +89,14 @@ function App() {
   return (
     <>
 
-      {modal && (
+      {state.modal && (
         <div className='modal'>
 
           <div className='overlay' onClick={toggleModal}></div>
 
           <div className='modal_content'>
 
-            <Update id={currentId} />
+            <Update id={state.currentId} />
 
             <span onClick={toggleModal}>&times;</span>
 
@@ -84,7 +116,7 @@ function App() {
             <label htmlFor="name">Имя</label>
 
             <input type="text" id='name' name='name' placeholder='Bruce Reyes'
-              onChange={e => setValues({ ...values, name: e.target.value })} required />
+              onChange={e => dispatch({ type: 'SET_VALUES', payload: { ...state.values, name: e.target.value } })} required />
 
           </div>
 
@@ -93,7 +125,7 @@ function App() {
             <label htmlFor="age">Возраст</label>
 
             <input type="number" id='age' name='age' placeholder='24'
-              onChange={e => setValues({ ...values, year: e.target.value })} required />
+              onChange={(e => dispatch({ type: 'SET_VALUES', payload: { ...state.values, year: e.target.value } }))} required />
 
           </div>
 
@@ -123,7 +155,7 @@ function App() {
           <tbody>
 
             {
-              data.map((item, idx) => (
+              state.data.map((item, idx) => (
                 <tr key={idx}>
 
                   <td>{counter++}</td>
@@ -133,7 +165,7 @@ function App() {
 
                     <img src="https://cdn3.iconfinder.com/data/icons/ui-element-4/24/UI-14-25.png" alt="change" onClick={() => handleEdit(item.id)} />
 
-                    <img src="https://cdn0.iconfinder.com/data/icons/pinpoint-action/48/delete-25.png" alt="delete" onClick={e => handleDelete(item.id)} />
+                    <img src="https://cdn0.iconfinder.com/data/icons/pinpoint-action/48/delete-25.png" alt="delete" onClick={() => handleDelete(item.id)} />
 
                   </td>
 
